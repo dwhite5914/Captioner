@@ -31,9 +31,9 @@
           <version>5prealpha-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>com.stanley</groupId>
-            <artifactId>jave</artifactId>
-            <version>1.0</version>
+          <groupId>net.bramp.ffmpeg</groupId>
+          <artifactId>ffmpeg</artifactId>
+          <version>0.6.1</version>
         </dependency>
     </dependencies>
 </project>

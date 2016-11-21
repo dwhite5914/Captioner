@@ -1,11 +1,12 @@
 package com.stanley.captioner;
 
-import it.sauronsoftware.jave.AudioAttributes;
-import it.sauronsoftware.jave.Encoder;
-import it.sauronsoftware.jave.EncoderException;
-import it.sauronsoftware.jave.EncodingAttributes;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+import net.bramp.ffmpeg.FFmpeg;
+import net.bramp.ffmpeg.FFmpegExecutor;
+import net.bramp.ffmpeg.FFprobe;
+import net.bramp.ffmpeg.builder.FFmpegBuilder;
 
 public class Converter
 {
@@ -30,28 +31,82 @@ public class Converter
     {
         File parentFile = adjacentFile.getParentFile();
         String parentPath = parentFile.getPath();
-        return new File(parentPath + "\\" + fileName);
+        String sep = File.separator;
+        return new File(parentPath + sep + fileName);
     }
     
     public void videoToAudio(File videoIn, File audioOut)
     {
-        AudioAttributes audio = new AudioAttributes();
-        audio.setCodec("pcm_s16le");
-        audio.setChannels(1);
-        audio.setSamplingRate(16000);
-        
-        EncodingAttributes encodedAudio = new EncodingAttributes();
-        encodedAudio.setFormat("wav");
-        encodedAudio.setAudioAttributes(audio);
-        
-        Encoder encoder = new Encoder();
+        FFmpeg ffmpeg = null;
         try
         {
-            encoder.encode(videoIn, audioOut, encodedAudio);
+            System.out.println(getFFmpegPath());
+            ffmpeg = new FFmpeg(getFFmpegPath());
         }
-        catch (IllegalArgumentException | EncoderException e)
+        catch (IOException ex)
         {
-            System.out.println("Failed to convert.");
+            System.out.println("Failed to find ffmpeg.");
+        }
+        
+        FFprobe ffprobe = null;
+        try
+        {
+            System.out.println(getFFprobePath());
+            ffprobe = new FFprobe(getFFprobePath());
+        }
+        catch (IOException ex)
+        {
+            System.out.println("Failed to find ffprobe.");
+        }
+        
+        FFmpegBuilder builder = new FFmpegBuilder()
+                .setInput(videoIn.getAbsolutePath())
+                .overrideOutputFiles(true)
+                .addOutput(audioOut.getAbsolutePath())
+                    .setFormat("wav")
+                    .setAudioChannels(1)
+                    .setAudioCodec("pcm_s16le")
+                    .setAudioSampleRate(16000)
+                    .setStrict(FFmpegBuilder.Strict.NORMAL)
+                    .done();
+        
+        FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
+        executor.createJob(builder).run();
+    }
+    
+    private String getFFmpegPath()
+    {
+        String os = System.getProperty("os.name");
+        File videoIn = getFile("test.mp4");
+        String sep = File.separator;
+        
+        if (os.equals("Windows 10"))
+        {
+            return toNewFile(videoIn, "ffmpeg_win64" + sep + "bin"
+                                + sep + "ffmpeg.exe").getAbsolutePath();
+        }
+        else
+        {
+            return toNewFile(videoIn, "ffmpeg_osx" + sep + "ffmepg")
+                                .getAbsolutePath();
+        }
+    }
+    
+    private String getFFprobePath()
+    {
+        String os = System.getProperty("os.name");
+        File videoIn = getFile("test.mp4");
+        String sep = File.separator;
+        
+        if (os.equals("Windows 10"))
+        {
+            return toNewFile(videoIn, "ffmpeg_win64" + sep + "bin"
+                                + sep + "ffprobe.exe").getAbsolutePath();
+        }
+        else
+        {
+            return toNewFile(videoIn, "ffmpeg_osx" + sep + "ffprobe")
+                                .getAbsolutePath();
         }
     }
 }
